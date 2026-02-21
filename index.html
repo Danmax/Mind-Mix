@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mind Mix v2 — The Ultimate Topic Shuffle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070d;
+    --surface: rgba(255,255,255,0.035);
+    --surface-solid: #111118;
+    --surface-2: rgba(255,255,255,0.06);
+    --surface-3: rgba(255,255,255,0.09);
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --text: #ece9e1;
+    --text-dim: #7d7a8a;
+    --text-mid: #a9a6b5;
+
+    --science: #00d2d3;
+    --history: #ff6b6b;
+    --culture: #feca57;
+    --nature: #1dd1a1;
+    --space: #c56cf0;
+    --food: #ff9f43;
+    --geo: #54a0ff;
+    --language: #ff78c5;
+
+    --correct: #00d26a;
+    --wrong: #ff4060;
+    --streak: #ffd32a;
+
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── ATMOSPHERIC BACKGROUND ── */
+  .atmosphere {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+  .atmosphere .mesh {
+    position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.1;
+    animation: drift 25s ease-in-out infinite;
+  }
+  .atmosphere .mesh:nth-child(1) { width: 600px; height: 600px; background: var(--science); top: -15%; left: -10%; }
+  .atmosphere .mesh:nth-child(2) { width: 500px; height: 500px; background: var(--space); bottom: -15%; right: -10%; animation-delay: -9s; }
+  .atmosphere .mesh:nth-child(3) { width: 400px; height: 400px; background: var(--culture); top: 50%; left: 40%; animation-delay: -16s; opacity: 0.06; }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0) scale(1); }
+    25% { transform: translate(40px,-30px) scale(1.08); }
+    50% { transform: translate(-20px,40px) scale(0.95); }
+    75% { transform: translate(30px,20px) scale(1.03); }
+  }
+
+  .grain {
+    position: fixed; inset: 0; z-index: 9998; pointer-events: none; opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── PARTICLES ── */
+  #particles {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* ── CONFETTI ── */
+  .confetti-container { position: fixed; inset: 0; z-index: 9997; pointer-events: none; overflow: hidden; }
+  .confetti-piece {
+    position: absolute; width: 10px; height: 10px; top: -20px;
+    animation: confettiFall 3s ease-in forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg) scale(0.3); opacity: 0; }
+  }
+
+  /* ── APP SHELL ── */
+  .app {
+    position: relative; z-index: 1;
+    max-width: 760px; margin: 0 auto; padding: 20px 20px 40px;
+    min-height: 100vh;
+  }
+
+  /* ── GLOBAL ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes scaleIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+  @keyframes slideLeft { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes streakGlow {
+    0%,100% { box-shadow: 0 0 8px rgba(255,211,42,0.3); }
+    50% { box-shadow: 0 0 20px rgba(255,211,42,0.6); }
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center; padding: 40px 0 20px;
+    animation: fadeUp 0.7s ease-out;
+  }
+  .header .version {
+    display: inline-block; padding: 5px 14px; border-radius: 100px;
+    background: linear-gradient(135deg, rgba(0,210,211,0.12), rgba(197,108,240,0.12));
+    border: 1px solid rgba(255,255,255,0.06);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px;
+  }
+  .header h1 {
+    font-family: 'Fraunces', serif; font-weight: 800;
+    font-size: clamp(3rem, 8vw, 4.5rem); line-height: 1;
+    font-style: normal;
+    background: linear-gradient(135deg, var(--text) 0%, var(--culture) 40%, var(--science) 70%, var(--space) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 6s linear infinite;
+  }
+  .header .subtitle {
+    color: var(--text-dim); font-size: 15px; margin-top: 10px; line-height: 1.5; font-weight: 300;
+  }
+
+  /* ── START SCREEN ── */
+  .start-screen {
+    animation: fadeUp 0.6s ease-out 0.2s both;
+  }
+
+  .mode-selector {
+    display: flex; flex-direction: column; gap: 14px; margin: 32px 0;
+  }
+  .mode-card {
+    display: flex; align-items: center; gap: 18px;
+    padding: 22px 24px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+  }
+  .mode-card::before {
+    content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s;
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+  }
+  .mode-card:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+  .mode-card:hover::before { opacity: 1; }
+  .mode-card.selected { border-color: var(--science); background: rgba(0,210,211,0.04); }
+  .mode-card .mode-icon { font-size: 32px; flex-shrink: 0; }
+  .mode-card .mode-info { flex: 1; }
+  .mode-card .mode-name { font-weight: 700; font-size: 17px; margin-bottom: 3px; }
+  .mode-card .mode-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+  .mode-card .mode-check {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.3s;
+  }
+  .mode-card.selected .mode-check {
+    border-color: var(--science); background: var(--science);
+  }
+  .mode-card.selected .mode-check::after {
+    content: '✓'; font-size: 13px; color: var(--bg); font-weight: 700;
+  }
+
+  .difficulty-row {
+    display: flex; gap: 10px; margin: 24px 0 32px; justify-content: center;
+    animation: fadeUp 0.6s ease-out 0.35s both;
+  }
+  .diff-btn {
+    padding: 10px 24px; border-radius: 100px; font-family: 'Outfit', sans-serif;
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.3s;
+  }
+  .diff-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .diff-btn.active { background: var(--surface-2); border-color: var(--text-mid); color: var(--text); }
+
+  .topic-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px;
+    margin: 24px 0;
+    animation: fadeUp 0.6s ease-out 0.3s both;
+  }
+  .topic-card {
+    padding: 16px; border-radius: var(--radius-sm); text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.3s; position: relative;
+  }
+  .topic-card:hover { border-color: var(--c); transform: translateY(-2px); }
+  .topic-card.selected { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, transparent); }
+  .topic-card .t-icon { font-size: 26px; margin-bottom: 6px; }
+  .topic-card .t-name { font-weight: 600; font-size: 13px; color: var(--c); }
+  .topic-card .t-count { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .topic-card .check-mark {
+    position: absolute; top: 8px; right: 8px; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--c); display: none;
+    place-items: center; font-size: 11px; color: var(--bg); font-weight: 700;
+  }
+  .topic-card.selected .check-mark { display: grid; }
+
+  .start-btn {
+    width: 100%; padding: 18px; border: none; border-radius: var(--radius-sm);
+    font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700;
+    background: linear-gradient(135deg, var(--science), var(--space));
+    color: var(--bg); cursor: pointer; transition: all 0.3s;
+    animation: fadeUp 0.6s ease-out 0.5s both;
+    position: relative; overflow: hidden;
+  }
+  .start-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  .start-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,210,211,0.2); }
+  .start-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ── QUIZ HUD ── */
+  .hud {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 0; margin-bottom: 8px;
+    animation: fadeIn 0.5s ease-out;
+  }
+  .hud-left { display: flex; align-items: center; gap: 12px; }
+  .hud-score {
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600;
+    padding: 6px 14px; border-radius: 100px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .hud-streak {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+    padding: 6px 14px; border-radius: 100px;
+    background: rgba(255,211,42,0.08); border: 1px solid rgba(255,211,42,0.2);
+    color: var(--streak); display: none; align-items: center; gap: 5px;
+  }
+  .hud-streak.visible { display: flex; animation: scaleIn 0.3s ease-out; }
+  .hud-streak.hot { animation: streakGlow 1.2s ease-in-out infinite; }
+  .hud-timer {
+    font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600;
+    padding: 6px 14px; border-radius: 100px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .hud-timer.warning { color: var(--wrong); border-color: rgba(255,64,96,0.3); }
+  .hud-timer .timer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--correct); }
+  .hud-timer.warning .timer-dot { background: var(--wrong); animation: pulse 0.6s ease-in-out infinite; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    animation: fadeIn 0.5s ease-out 0.1s both;
+  }
+  .progress-dots {
+    display: flex; gap: 4px; flex: 1; justify-content: center; flex-wrap: wrap;
+  }
+  .progress-dots .dot {
+    width: 100%; max-width: 32px; height: 5px; border-radius: 3px;
+    background: var(--surface-2); transition: all 0.3s;
+  }
+  .progress-dots .dot.done { background: var(--correct); }
+  .progress-dots .dot.wrong-dot { background: var(--wrong); }
+  .progress-dots .dot.current {
+    background: linear-gradient(90deg, var(--science), var(--space));
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .pbar-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); white-space: nowrap;
+  }
+
+  /* ── QUESTION CARD ── */
+  .q-card {
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 36px 32px; position: relative;
+    overflow: hidden;
+    animation: slideLeft 0.45s cubic-bezier(.22,.68,.36,1);
+    backdrop-filter: blur(20px);
+  }
+  .q-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--topic-color, var(--science));
+    opacity: 0.8;
+  }
+  .q-card::after {
+    content: ''; position: absolute; top: 3px; left: 0; right: 0; height: 80px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--topic-color) 4%, transparent), transparent);
+    pointer-events: none;
+  }
+  .q-topic {
+    position: relative; z-index: 1;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700;
+    color: var(--topic-color); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .q-topic .icon { font-size: 16px; }
+  .q-diff-badge {
+    margin-left: auto; padding: 3px 10px; border-radius: 100px;
+    font-size: 10px; letter-spacing: 1px; font-weight: 600;
+    background: rgba(255,255,255,0.05); color: var(--text-dim);
+  }
+  .q-diff-badge.hard { color: var(--wrong); background: rgba(255,64,96,0.08); }
+  .q-diff-badge.medium { color: var(--culture); background: rgba(254,202,87,0.08); }
+  .q-text {
+    position: relative; z-index: 1;
+    font-family: 'Fraunces', serif; font-size: clamp(1.25rem, 3.8vw, 1.6rem);
+    font-weight: 600; line-height: 1.4; margin-bottom: 28px;
+    font-style: normal;
+  }
+
+  /* ── OPTIONS ── */
+  .opts { display: flex; flex-direction: column; gap: 10px; position: relative; z-index: 1; }
+  .opt {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; border-radius: var(--radius-sm);
+    background: var(--surface-2); border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.2s cubic-bezier(.22,.68,.36,1);
+    position: relative; overflow: hidden;
+  }
+  .opt::before {
+    content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+  }
+  .opt:hover:not(.locked) { border-color: var(--border-hover); transform: translateX(4px); }
+  .opt:hover:not(.locked)::before { opacity: 1; }
+  .opt .key {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600;
+    width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+    background: rgba(255,255,255,0.06); color: var(--text-dim); flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .opt:hover:not(.locked) .key { background: rgba(255,255,255,0.1); color: var(--text); }
+  .opt .label { font-size: 15px; line-height: 1.4; }
+  .opt.correct-opt { border-color: var(--correct); background: rgba(0,210,106,0.06); }
+  .opt.correct-opt .key { background: var(--correct); color: var(--bg); }
+  .opt.wrong-opt { border-color: var(--wrong); background: rgba(255,64,96,0.06); }
+  .opt.wrong-opt .key { background: var(--wrong); color: #fff; }
+  .opt.locked { cursor: default; opacity: 0.45; }
+  .opt.correct-opt.locked { opacity: 1; }
+
+  /* ── FEEDBACK ── */
+  .feedback {
+    margin-top: 20px; padding: 18px 22px; border-radius: var(--radius-sm);
+    border-left: 3px solid var(--topic-color);
+    background: rgba(255,255,255,0.02);
+    font-size: 14px; line-height: 1.65; color: var(--text-mid);
+    animation: fadeUp 0.35s ease-out;
+  }
+  .feedback .fb-head {
+    font-weight: 700; color: var(--text); margin-bottom: 4px; font-size: 15px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .feedback .fb-head .bonus {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    padding: 2px 8px; border-radius: 100px;
+    background: rgba(255,211,42,0.1); color: var(--streak);
+  }
+
+  .next-btn {
+    margin-top: 20px; width: 100%; padding: 16px; border: none; border-radius: var(--radius-sm);
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700;
+    background: linear-gradient(135deg, var(--science), var(--space));
+    color: var(--bg); cursor: pointer; transition: all 0.3s;
+    animation: fadeUp 0.35s ease-out;
+  }
+  .next-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,210,211,0.2); }
+
+  /* ── RESULTS ── */
+  .results { text-align: center; animation: fadeUp 0.6s ease-out; }
+
+  .score-display { margin: 24px 0 32px; }
+  .score-display .big-score {
+    font-family: 'Fraunces', serif; font-weight: 800; font-size: 72px; line-height: 1;
+    background: linear-gradient(135deg, var(--science), var(--culture), var(--space));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    background-size: 200% auto; animation: shimmer 4s linear infinite;
+  }
+  .score-display .score-sub {
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--text-dim); margin-top: 4px;
+  }
+  .score-display .score-xp {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    color: var(--streak); margin-top: 8px;
+    padding: 4px 16px; border-radius: 100px; display: inline-block;
+    background: rgba(255,211,42,0.06); border: 1px solid rgba(255,211,42,0.15);
+  }
+
+  .result-title {
+    font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 800; margin-bottom: 6px;
+  }
+  .result-tagline { color: var(--text-dim); font-size: 15px; margin-bottom: 28px; font-weight: 300; }
+
+  /* ── STATS GRID ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  .stat-card {
+    padding: 18px 14px; border-radius: var(--radius-sm);
+    background: var(--surface); border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-card .stat-val {
+    font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600;
+  }
+  .stat-card .stat-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── TOPIC BREAKDOWN ── */
+  .topic-results {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;
+    margin-bottom: 28px; text-align: left;
+  }
+  .tr-card {
+    padding: 18px; border-radius: var(--radius-sm);
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .tr-card .tr-head {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--c); font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tr-card .tr-bar {
+    height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06);
+    overflow: hidden; margin-bottom: 8px;
+  }
+  .tr-card .tr-fill { height: 100%; border-radius: 2px; background: var(--c); transition: width 1s cubic-bezier(.4,0,.2,1); }
+  .tr-card .tr-score { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; }
+  .tr-card .tr-pct { font-size: 12px; color: var(--text-dim); }
+
+  /* ── ACHIEVEMENTS ── */
+  .achievements { margin-bottom: 28px; }
+  .achievements h3 {
+    font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; margin-bottom: 14px;
+  }
+  .ach-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .ach {
+    padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,211,42,0.06); border: 1px solid rgba(255,211,42,0.15);
+    color: var(--streak);
+    animation: scaleIn 0.4s ease-out both;
+  }
+  .ach:nth-child(2) { animation-delay: 0.1s; }
+  .ach:nth-child(3) { animation-delay: 0.2s; }
+  .ach:nth-child(4) { animation-delay: 0.3s; }
+
+  /* ── REVIEW SECTION ── */
+  .review-section { margin-bottom: 28px; text-align: left; }
+  .review-section h3 {
+    font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; margin-bottom: 14px; text-align: center;
+  }
+  .review-toggle {
+    width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text-mid); font-family: 'Outfit', sans-serif;
+    font-size: 14px; cursor: pointer; text-align: center; transition: all 0.3s; margin-bottom: 10px;
+  }
+  .review-toggle:hover { border-color: var(--border-hover); }
+  .review-item {
+    padding: 16px; border-radius: var(--radius-sm); margin-bottom: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 14px; line-height: 1.5;
+  }
+  .review-item .ri-q { font-weight: 600; margin-bottom: 6px; }
+  .review-item .ri-correct { color: var(--correct); font-size: 13px; }
+  .review-item .ri-wrong { color: var(--wrong); font-size: 13px; }
+
+  /* ── BUTTONS ── */
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn-row button {
+    padding: 14px 28px; border-radius: var(--radius-sm); font-family: 'Outfit', sans-serif;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s; border: none;
+  }
+  .btn-p {
+    background: linear-gradient(135deg, var(--science), var(--space)); color: var(--bg);
+  }
+  .btn-p:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,210,211,0.2); }
+  .btn-s {
+    background: var(--surface-solid); border: 1px solid var(--border) !important; color: var(--text);
+  }
+  .btn-s:hover { background: var(--surface-2); }
+
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface-solid); border: 1px solid var(--border);
+    padding: 14px 28px; border-radius: 100px; font-size: 14px; font-weight: 500;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5); z-index: 100;
+    opacity: 0; transition: all 0.4s cubic-bezier(.4,0,.2,1); pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .footer {
+    text-align: center; padding: 24px 0 8px; font-size: 11px; color: var(--text-dim); opacity: 0.4;
+  }
+
+  @media (max-width: 520px) {
+    .q-card { padding: 28px 20px; }
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .topic-results { grid-template-columns: 1fr 1fr; }
+    .topic-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="atmosphere"><div class="mesh"></div><div class="mesh"></div><div class="mesh"></div></div>
+<div class="grain"></div>
+<canvas id="particles"></canvas>
+<div class="confetti-container" id="confetti"></div>
+
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PARTICLE SYSTEM ──
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+for (let i = 0; i < 40; i++) {
+  particles.push({
+    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+    r: Math.random() * 1.5 + 0.3, a: Math.random() * 0.3 + 0.05
+  });
+}
+function drawParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+    if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${p.a})`; ctx.fill();
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ── CONFETTI ──
+function launchConfetti() {
+  const c = document.getElementById('confetti');
+  const colors = ['#00d2d3','#ff6b6b','#feca57','#1dd1a1','#c56cf0','#ff9f43','#54a0ff','#ff78c5'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.width = (Math.random() * 8 + 5) + 'px';
+    piece.style.height = (Math.random() * 8 + 5) + 'px';
+    piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    c.appendChild(piece);
+  }
+  setTimeout(() => { c.innerHTML = ''; }, 4000);
+}
+
+// ── DATA ──
+const TOPICS = {
+  science:  { name:'Science',      icon:'🔬', color:'var(--science)' },
+  history:  { name:'History',      icon:'📜', color:'var(--history)' },
+  culture:  { name:'Pop Culture',  icon:'🎬', color:'var(--culture)' },
+  nature:   { name:'Nature',       icon:'🌿', color:'var(--nature)' },
+  space:    { name:'Space',        icon:'🚀', color:'var(--space)' },
+  food:     { name:'Food & Drink', icon:'🍜', color:'var(--food)' },
+  geo:      { name:'Geography',    icon:'🌍', color:'var(--geo)' },
+  language: { name:'Language',     icon:'📖', color:'var(--language)' },
+};
+
+const Q = [
+  // SCIENCE
+  { topic:'science', d:'easy', q:'What is the chemical symbol for gold?', opts:['Au','Ag','Go','Gd'], ans:0, ex:'Au comes from the Latin "aurum," meaning gold.' },
+  { topic:'science', d:'easy', q:'What is the hardest natural substance on Earth?', opts:['Diamond','Tungsten carbide','Corundum','Osmium'], ans:0, ex:'Diamond scores 10 on the Mohs hardness scale.' },
+  { topic:'science', d:'medium', q:'What phenomenon causes the Northern Lights?', opts:['Solar reflection off ice','Charged particles hitting atmosphere','Volcanic gases','Light refraction in clouds'], ans:1, ex:'Solar wind particles collide with gases in Earth\'s magnetosphere, creating auroras.' },
+  { topic:'science', d:'medium', q:'What does DNA stand for?', opts:['Deoxyribonucleic acid','Dinitrogen acid','Dynamic nuclear arrangement','Deoxynitrous acid'], ans:0, ex:'DNA carries the genetic instructions for all known living organisms.' },
+  { topic:'science', d:'hard', q:'What is the Chandrasekhar limit?', opts:['Max mass of a white dwarf (~1.4 solar masses)','Speed limit for neutrinos','Minimum mass for fusion','Max density of neutron stars'], ans:0, ex:'Above ~1.4 solar masses, a white dwarf will collapse into a neutron star or black hole.' },
+  { topic:'science', d:'hard', q:'Which subatomic particle was predicted by Dirac and discovered in 1932?', opts:['Neutron','Positron','Muon','Pion'], ans:1, ex:'Paul Dirac predicted antimatter in 1928; Carl Anderson discovered the positron four years later.' },
+  { topic:'science', d:'medium', q:'What is the most abundant gas in Earth\'s atmosphere?', opts:['Oxygen','Carbon dioxide','Nitrogen','Argon'], ans:2, ex:'Nitrogen makes up about 78% of Earth\'s atmosphere by volume.' },
+
+  // HISTORY
+  { topic:'history', d:'easy', q:'Which ancient civilization built Machu Picchu?', opts:['Aztec','Maya','Inca','Olmec'], ans:2, ex:'The Inca built Machu Picchu around 1450 CE in the Peruvian Andes.' },
+  { topic:'history', d:'easy', q:'In what year did the Berlin Wall fall?', opts:['1987','1988','1989','1991'], ans:2, ex:'The Berlin Wall fell on November 9, 1989, symbolizing the end of the Cold War.' },
+  { topic:'history', d:'medium', q:'Who was the first woman to win a Nobel Prize?', opts:['Rosalind Franklin','Marie Curie','Dorothy Hodgkin','Lise Meitner'], ans:1, ex:'Marie Curie won the Nobel Prize in Physics in 1903.' },
+  { topic:'history', d:'medium', q:'Which empire was ruled by Suleiman the Magnificent?', opts:['Mughal','Persian','Ottoman','Byzantine'], ans:2, ex:'Suleiman I ruled the Ottoman Empire during its golden age (1520–1566).' },
+  { topic:'history', d:'hard', q:'The Treaty of Tordesillas (1494) divided the New World between which two countries?', opts:['England & France','Spain & Portugal','Spain & England','Portugal & Netherlands'], ans:1, ex:'Pope Alexander VI brokered this treaty dividing newly discovered lands between Spain and Portugal.' },
+  { topic:'history', d:'hard', q:'What was the shortest war in recorded history?', opts:['Six-Day War','Anglo-Zanzibar War','Football War','Falklands War'], ans:1, ex:'The Anglo-Zanzibar War of 1896 lasted just 38–45 minutes.' },
+
+  // POP CULTURE
+  { topic:'culture', d:'easy', q:'Which film won the first ever Academy Award for Best Picture?', opts:['Wings','Sunrise','The Jazz Singer','Ben-Hur'], ans:0, ex:'Wings (1927), a silent war film about WWI fighter pilots.' },
+  { topic:'culture', d:'easy', q:'Which band has sold the most records worldwide?', opts:['Rolling Stones','Led Zeppelin','The Beatles','Pink Floyd'], ans:2, ex:'The Beatles have sold an estimated 600 million+ records worldwide.' },
+  { topic:'culture', d:'medium', q:'Which artist painted "The Persistence of Memory"?', opts:['Picasso','Magritte','Dalí','Kahlo'], ans:2, ex:'Salvador Dalí painted this surrealist masterpiece in 1931.' },
+  { topic:'culture', d:'medium', q:'What 1994 film features the quote "Life is like a box of chocolates"?', opts:['The Shawshank Redemption','Forrest Gump','Pulp Fiction','The Lion King'], ans:1, ex:'Tom Hanks delivered this iconic line as Forrest Gump.' },
+  { topic:'culture', d:'hard', q:'Which author wrote under the pseudonym "Currer Bell"?', opts:['George Eliot','Jane Austen','Charlotte Brontë','Emily Dickinson'], ans:2, ex:'Charlotte Brontë published Jane Eyre under the pen name Currer Bell in 1847.' },
+  { topic:'culture', d:'hard', q:'In music, what does BPM stand for?', opts:['Bass per measure','Beats per minute','Bars per movement','Base pitch modulation'], ans:1, ex:'BPM (beats per minute) measures the tempo of music.' },
+
+  // NATURE
+  { topic:'nature', d:'easy', q:'How many hearts does an octopus have?', opts:['One','Two','Three','Four'], ans:2, ex:'Two hearts pump blood to the gills; one pumps it to the body.' },
+  { topic:'nature', d:'easy', q:'What percentage of Earth\'s water is fresh water?', opts:['About 3%','About 10%','About 25%','About 40%'], ans:0, ex:'Only ~3% is fresh, and most is locked in ice caps and glaciers.' },
+  { topic:'nature', d:'medium', q:'What is the largest living organism on Earth by area?', opts:['Blue whale','Giant sequoia','Honey fungus','Great Barrier Reef'], ans:2, ex:'The Armillaria ostoyae in Oregon spans ~2,385 acres underground.' },
+  { topic:'nature', d:'medium', q:'Which animal can sleep for up to three years?', opts:['Bear','Sloth','Snail','Tortoise'], ans:2, ex:'Certain snail species can enter a sleep state lasting up to three years during droughts.' },
+  { topic:'nature', d:'hard', q:'What is the only mammal capable of true flight?', opts:['Flying squirrel','Sugar glider','Bat','Colugo'], ans:2, ex:'Bats are the only mammals with powered flight. Others only glide.' },
+  { topic:'nature', d:'hard', q:'The axolotl is native to which country?', opts:['Japan','Australia','Brazil','Mexico'], ans:3, ex:'Axolotls are native to Lake Xochimilco in Mexico City.' },
+
+  // SPACE
+  { topic:'space', d:'easy', q:'What is the most abundant element in the universe?', opts:['Helium','Oxygen','Carbon','Hydrogen'], ans:3, ex:'Hydrogen makes up ~75% of all normal matter by mass.' },
+  { topic:'space', d:'easy', q:'Which planet has the shortest day in our solar system?', opts:['Mercury','Mars','Jupiter','Saturn'], ans:2, ex:'Jupiter\'s day is only about 9 hours and 56 minutes.' },
+  { topic:'space', d:'medium', q:'Approximately how old is the universe?', opts:['8.2 billion years','10.5 billion years','13.8 billion years','17.3 billion years'], ans:2, ex:'Based on CMB observations, the universe is ~13.8 billion years old.' },
+  { topic:'space', d:'medium', q:'What is the Great Red Spot on Jupiter?', opts:['A volcano','A massive storm','An impact crater','A magnetic anomaly'], ans:1, ex:'The Great Red Spot is a persistent anticyclonic storm larger than Earth.' },
+  { topic:'space', d:'hard', q:'What is the Roche limit?', opts:['Minimum orbit for light escape','Distance at which tidal forces tear apart a satellite','Maximum habitable zone distance','Limit of radio wave propagation'], ans:1, ex:'Inside the Roche limit, tidal forces from a planet exceed a moon\'s self-gravity.' },
+  { topic:'space', d:'hard', q:'Which moon in our solar system has a subsurface ocean and geysers?', opts:['Titan','Europa','Enceladus','Ganymede'], ans:2, ex:'Enceladus, a moon of Saturn, shoots water ice geysers from its subsurface ocean.' },
+
+  // FOOD
+  { topic:'food', d:'easy', q:'Which country is the origin of the croissant?', opts:['France','Austria','Italy','Belgium'], ans:1, ex:'The croissant evolved from the Austrian kipferl, later popularized in France.' },
+  { topic:'food', d:'easy', q:'Saffron comes from which flower?', opts:['Sunflower','Crocus','Lavender','Jasmine'], ans:1, ex:'Saffron is from Crocus sativus. It takes ~75,000 flowers to make one pound.' },
+  { topic:'food', d:'medium', q:'Which fruit is called "the king of fruits" in Southeast Asia?', opts:['Mango','Jackfruit','Durian','Rambutan'], ans:2, ex:'Durian is revered despite its polarizing smell.' },
+  { topic:'food', d:'medium', q:'What gives bread its holes?', opts:['Baking powder','Steam','CO₂ from yeast fermentation','Kneading technique'], ans:2, ex:'Yeast ferments sugars, producing CO₂ gas that creates air pockets in dough.' },
+  { topic:'food', d:'hard', q:'Maillard reaction is responsible for what in cooking?', opts:['Caramelization of sugar','Browning and flavor in seared foods','Emulsification of oils','Tenderizing of meat'], ans:1, ex:'The Maillard reaction between amino acids and sugars creates complex flavors and brown color.' },
+  { topic:'food', d:'hard', q:'Which country consumes the most coffee per capita?', opts:['Brazil','United States','Ethiopia','Finland'], ans:3, ex:'Finland leads with ~12 kg per person annually.' },
+
+  // GEOGRAPHY
+  { topic:'geo', d:'easy', q:'What is the longest river in the world?', opts:['Amazon','Nile','Mississippi','Yangtze'], ans:1, ex:'The Nile stretches approximately 6,650 km through northeastern Africa.' },
+  { topic:'geo', d:'easy', q:'Which country has the most time zones?', opts:['Russia','United States','China','France'], ans:3, ex:'France has 12 time zones thanks to its overseas territories.' },
+  { topic:'geo', d:'medium', q:'What is the smallest country in the world by area?', opts:['Monaco','San Marino','Vatican City','Liechtenstein'], ans:2, ex:'Vatican City is just 0.44 km², the world\'s smallest independent state.' },
+  { topic:'geo', d:'medium', q:'Which desert is the largest hot desert on Earth?', opts:['Gobi','Arabian','Sahara','Kalahari'], ans:2, ex:'The Sahara spans about 9.2 million km² across North Africa.' },
+  { topic:'geo', d:'hard', q:'Lesotho is entirely surrounded by which country?', opts:['South Africa','Mozambique','Botswana','Zimbabwe'], ans:0, ex:'Lesotho is the only country fully enclosed within South Africa.' },
+  { topic:'geo', d:'hard', q:'What is the deepest point in the ocean?', opts:['Tonga Trench','Puerto Rico Trench','Mariana Trench','Java Trench'], ans:2, ex:'The Challenger Deep in the Mariana Trench reaches ~10,935 meters.' },
+
+  // LANGUAGE
+  { topic:'language', d:'easy', q:'Which language has the most native speakers worldwide?', opts:['English','Spanish','Hindi','Mandarin Chinese'], ans:3, ex:'Mandarin Chinese has over 900 million native speakers.' },
+  { topic:'language', d:'easy', q:'What is the most commonly used letter in English?', opts:['T','S','A','E'], ans:3, ex:'E appears in about 11% of all English words.' },
+  { topic:'language', d:'medium', q:'Which language has the longest alphabet?', opts:['Russian','Khmer','Arabic','Georgian'], ans:1, ex:'The Khmer (Cambodian) alphabet has 74 letters.' },
+  { topic:'language', d:'medium', q:'What does "kindergarten" literally mean in German?', opts:['Small school','Children\'s garden','Play house','Learning room'], ans:1, ex:'"Kinder" means children and "Garten" means garden in German.' },
+  { topic:'language', d:'hard', q:'Which is the only major language with no irregular verbs?', opts:['Esperanto','Turkish','Finnish','Swahili'], ans:1, ex:'Turkish is agglutinative and highly regular — its verbs follow consistent patterns with no irregularities.' },
+  { topic:'language', d:'hard', q:'What is a "hapax legomenon"?', opts:['A word appearing only once in a text/corpus','A word with no translation','A self-referential word','A palindrome sentence'], ans:0, ex:'From Greek, it means "said once" — a word occurring only once in a body of text.' },
+];
+
+function shuffle(a) { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+
+// ── STATE ──
+let S = {
+  screen: 'start',
+  mode: 'classic',       // classic | timed | marathon
+  difficulty: 'all',     // easy | medium | hard | all
+  selectedTopics: new Set(Object.keys(TOPICS)),
+  questions: [],
+  current: 0,
+  score: 0,
+  totalXP: 0,
+  answers: [],           // { chosen, correct, time }
+  streak: 0,
+  maxStreak: 0,
+  timerVal: 0,
+  timerInterval: null,
+  reviewOpen: false,
+};
+
+const MODES = {
+  classic:  { name:'Classic Mix', icon:'🎲', desc:'12 random questions, no time pressure. Learn at your pace.', count:12 },
+  timed:    { name:'Speed Round', icon:'⚡', desc:'15 seconds per question. Think fast, score big with time bonuses.', count:12 },
+  marathon: { name:'Marathon', icon:'🏔️', desc:'All available questions. The ultimate knowledge test.', count:999 },
+};
+
+// ── HELPERS ──
+function pickQuestions() {
+  let pool = Q.filter(q => S.selectedTopics.has(q.topic));
+  if (S.difficulty !== 'all') pool = pool.filter(q => q.d === S.difficulty);
+  const shuffled = shuffle(pool);
+  const count = S.mode === 'marathon' ? shuffled.length : Math.min(MODES[S.mode].count, shuffled.length);
+  return shuffled.slice(0, count);
+}
+
+function calcXP(correct, timeLeft, streak) {
+  if (!correct) return 0;
+  let xp = 100;
+  if (S.mode === 'timed' && timeLeft > 0) xp += Math.round(timeLeft * 8);
+  if (streak >= 5) xp += 50;
+  else if (streak >= 3) xp += 25;
+  return xp;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── RENDER ──
+function render() {
+  const app = document.getElementById('app');
+  if (S.screen === 'start') renderStart(app);
+  else if (S.screen === 'quiz') renderQuiz(app);
+  else if (S.screen === 'results') renderResults(app);
+}
+
+// ── START SCREEN ──
+function renderStart(app) {
+  const topicCounts = {};
+  Object.keys(TOPICS).forEach(t => {
+    let pool = Q.filter(q => q.topic === t);
+    if (S.difficulty !== 'all') pool = pool.filter(q => q.d === S.difficulty);
+    topicCounts[t] = pool.length;
+  });
+
+  let totalAvail = 0;
+  S.selectedTopics.forEach(t => totalAvail += (topicCounts[t] || 0));
+  const qCount = S.mode === 'marathon' ? totalAvail : Math.min(MODES[S.mode].count, totalAvail);
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="version">v2.0 • free to share</div>
+      <h1>Mind Mix</h1>
+      <p class="subtitle">Eight topics. Three modes. One brain. How far can you go?</p>
+    </div>
+    <div class="start-screen">
+      <div class="mode-selector">
+        ${Object.entries(MODES).map(([k,m]) => `
+          <div class="mode-card ${S.mode===k?'selected':''}" onclick="setMode('${k}')">
+            <div class="mode-icon">${m.icon}</div>
+            <div class="mode-info">
+              <div class="mode-name">${m.name}</div>
+              <div class="mode-desc">${m.desc}</div>
+            </div>
+            <div class="mode-check"></div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="text-align:center;margin-bottom:8px;">
+        <span style="font-size:13px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;font-weight:600;">Difficulty</span>
+      </div>
+      <div class="difficulty-row">
+        ${['all','easy','medium','hard'].map(d => `
+          <button class="diff-btn ${S.difficulty===d?'active':''}" onclick="setDiff('${d}')">${d === 'all' ? 'All' : d.charAt(0).toUpperCase()+d.slice(1)}</button>
+        `).join('')}
+      </div>
+
+      <div style="text-align:center;margin-bottom:12px;">
+        <span style="font-size:13px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;font-weight:600;">Topics</span>
+        <span style="font-size:12px;color:var(--text-dim);margin-left:8px;cursor:pointer;text-decoration:underline;" onclick="toggleAllTopics()">${S.selectedTopics.size === Object.keys(TOPICS).length ? 'Deselect all' : 'Select all'}</span>
+      </div>
+      <div class="topic-grid">
+        ${Object.entries(TOPICS).map(([k,t]) => `
+          <div class="topic-card ${S.selectedTopics.has(k)?'selected':''}" style="--c:${t.color}" onclick="toggleTopic('${k}')">
+            <div class="check-mark">✓</div>
+            <div class="t-icon">${t.icon}</div>
+            <div class="t-name">${t.name}</div>
+            <div class="t-count">${topicCounts[k]} questions</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="text-align:center;margin:16px 0 20px;font-size:14px;color:var(--text-dim);">
+        ${qCount} question${qCount!==1?'s':''} ready ${S.mode==='timed'?'• 15s each':''}
+      </div>
+
+      <button class="start-btn" onclick="startQuiz()" ${qCount<1?'disabled':''}>
+        ${qCount < 1 ? 'Select at least one topic' : `Start ${MODES[S.mode].name} →`}
+      </button>
+    </div>
+    <div class="footer">Mind Mix v2 — Share freely with anyone</div>
+  `;
+}
+
+function setMode(m) { S.mode = m; render(); }
+function setDiff(d) { S.difficulty = d; render(); }
+function toggleTopic(t) {
+  if (S.selectedTopics.has(t)) { if(S.selectedTopics.size > 1) S.selectedTopics.delete(t); }
+  else S.selectedTopics.add(t);
+  render();
+}
+function toggleAllTopics() {
+  if (S.selectedTopics.size === Object.keys(TOPICS).length) {
+    S.selectedTopics = new Set([Object.keys(TOPICS)[0]]);
+  } else {
+    S.selectedTopics = new Set(Object.keys(TOPICS));
+  }
+  render();
+}
+
+function startQuiz() {
+  S.questions = pickQuestions();
+  if (S.questions.length < 1) return;
+  S.current = 0; S.score = 0; S.totalXP = 0;
+  S.answers = []; S.streak = 0; S.maxStreak = 0;
+  S.screen = 'quiz'; S.reviewOpen = false;
+  if (S.timerInterval) clearInterval(S.timerInterval);
+  render();
+  if (S.mode === 'timed') startTimer();
+}
+
+// ── TIMER ──
+function startTimer() {
+  S.timerVal = 150; // 15.0 seconds in tenths
+  if (S.timerInterval) clearInterval(S.timerInterval);
+  S.timerInterval = setInterval(() => {
+    S.timerVal--;
+    updateTimerDisplay();
+    if (S.timerVal <= 0) {
+      clearInterval(S.timerInterval);
+      if (S.answers[S.current] === undefined) forceTimeout();
+    }
+  }, 100);
+}
+function updateTimerDisplay() {
+  const el = document.querySelector('.hud-timer');
+  if (!el) return;
+  const secs = (S.timerVal / 10).toFixed(1);
+  el.querySelector('.timer-text').textContent = secs + 's';
+  if (S.timerVal <= 50) el.classList.add('warning');
+  else el.classList.remove('warning');
+}
+function forceTimeout() {
+  S.answers[S.current] = { chosen: -1, correct: false, time: 0 };
+  S.streak = 0;
+  render();
+}
+
+// ── QUIZ ──
+function renderQuiz(app) {
+  const q = S.questions[S.current];
+  const t = TOPICS[q.topic];
+  const answered = S.answers[S.current] !== undefined;
+  const ans = S.answers[S.current];
+  const total = S.questions.length;
+
+  app.innerHTML = `
+    <div class="hud">
+      <div class="hud-left">
+        <div class="hud-score">✦ ${S.score}/${S.current + (answered?1:0)}</div>
+        <div class="hud-streak ${S.streak >= 2 ? 'visible' : ''} ${S.streak >= 5 ? 'hot' : ''}">
+          🔥 ${S.streak}
+        </div>
+      </div>
+      ${S.mode === 'timed' ? `
+        <div class="hud-timer">
+          <div class="timer-dot"></div>
+          <span class="timer-text">${answered ? '—' : '15.0s'}</span>
+        </div>
+      ` : ''}
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-dots">
+        ${S.questions.map((_, i) => {
+          let cls = 'dot';
+          if (i < S.current || (i === S.current && answered)) {
+            const a = S.answers[i];
+            cls += a && a.correct ? ' done' : ' wrong-dot';
+          } else if (i === S.current) cls += ' current';
+          return `<div class="${cls}"></div>`;
+        }).join('')}
+      </div>
+      <div class="pbar-label">${S.current+1}/${total}</div>
+    </div>
+
+    <div class="q-card" style="--topic-color:${t.color}">
+      <div class="q-topic">
+        <span class="icon">${t.icon}</span> ${t.name}
+        <span class="q-diff-badge ${q.d==='hard'?'hard':''} ${q.d==='medium'?'medium':''}">${q.d.toUpperCase()}</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      <div class="opts">
+        ${q.opts.map((opt, i) => {
+          let cls = 'opt';
+          if (answered) {
+            cls += ' locked';
+            if (i === q.ans) cls += ' correct-opt';
+            else if (ans && i === ans.chosen && !ans.correct) cls += ' wrong-opt';
+          }
+          return `<div class="${cls}" onclick="chooseAnswer(${i})">
+            <span class="key">${String.fromCharCode(65+i)}</span>
+            <span class="label">${opt}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${answered ? renderFeedback(q, ans) : ''}
+      ${answered ? `<button class="next-btn" onclick="nextQ()">${S.current < total - 1 ? 'Next Question →' : 'See Results →'}</button>` : ''}
+    </div>
+  `;
+
+  if (S.mode === 'timed' && !answered) updateTimerDisplay();
+}
+
+function renderFeedback(q, ans) {
+  const isCorrect = ans && ans.correct;
+  const xp = ans ? ans.xp || 0 : 0;
+  const head = isCorrect ? '✓ Correct!' : (ans && ans.chosen === -1 ? '⏱ Time\'s up!' : '✗ Not quite');
+  return `
+    <div class="feedback" style="--topic-color:${TOPICS[q.topic].color}">
+      <div class="fb-head">${head} ${xp > 100 ? `<span class="bonus">+${xp} XP</span>` : (isCorrect ? `<span class="bonus">+${xp} XP</span>` : '')}</div>
+      ${q.ex}
+    </div>
+  `;
+}
+
+function chooseAnswer(i) {
+  if (S.answers[S.current] !== undefined) return;
+  const q = S.questions[S.current];
+  const correct = i === q.ans;
+  const timeLeft = S.mode === 'timed' ? S.timerVal / 10 : 0;
+
+  if (correct) { S.score++; S.streak++; S.maxStreak = Math.max(S.maxStreak, S.streak); }
+  else { S.streak = 0; }
+
+  const xp = calcXP(correct, timeLeft, S.streak);
+  S.totalXP += xp;
+
+  S.answers[S.current] = { chosen: i, correct, time: timeLeft, xp };
+
+  if (S.timerInterval) clearInterval(S.timerInterval);
+  render();
+}
+
+function nextQ() {
+  if (S.current < S.questions.length - 1) {
+    S.current++;
+    S.screen = 'quiz';
+    render();
+    if (S.mode === 'timed') startTimer();
+  } else {
+    if (S.timerInterval) clearInterval(S.timerInterval);
+    S.screen = 'results';
+    render();
+    if (S.score === S.questions.length && S.questions.length >= 5) launchConfetti();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── RESULTS ──
+function renderResults(app) {
+  const total = S.questions.length;
+  const pct = Math.round(S.score / total * 100);
+
+  let title, tagline;
+  if (pct === 100) { title = 'Perfect Score!'; tagline = 'Absolutely flawless. You\'re a true polymath.'; }
+  else if (pct >= 85) { title = 'Brilliant Mind!'; tagline = 'Exceptional knowledge across the board.'; }
+  else if (pct >= 70) { title = 'Sharp Thinker!'; tagline = 'Impressive range and depth.'; }
+  else if (pct >= 50) { title = 'Solid Foundation!'; tagline = 'Good instincts — keep building.'; }
+  else { title = 'Keep Exploring!'; tagline = 'Every question is a door to something new.'; }
+
+  // Topic breakdown
+  const ts = {};
+  S.questions.forEach((q, i) => {
+    if (!ts[q.topic]) ts[q.topic] = { c: 0, t: 0 };
+    ts[q.topic].t++;
+    if (S.answers[i] && S.answers[i].correct) ts[q.topic].c++;
+  });
+
+  // Achievements
+  const achs = [];
+  if (pct === 100) achs.push('🏆 Perfectionist');
+  if (S.maxStreak >= 5) achs.push('🔥 On Fire (5+ streak)');
+  if (S.maxStreak >= 3 && S.maxStreak < 5) achs.push('⚡ Hot Streak (3+)');
+  Object.entries(ts).forEach(([tk, s]) => {
+    if (s.c === s.t && s.t >= 2) achs.push(`${TOPICS[tk].icon} ${TOPICS[tk].name} Master`);
+  });
+  if (S.mode === 'timed') {
+    const avgTime = S.answers.reduce((a, x) => a + (x.time || 0), 0) / total;
+    if (avgTime > 10) achs.push('⏱ Lightning Fast');
+  }
+  if (S.mode === 'marathon') achs.push('🏔️ Marathon Finisher');
+  if (total >= 10 && pct >= 80) achs.push('🎯 Sharpshooter');
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="version">results</div>
+      <h1>Mind Mix</h1>
+    </div>
+    <div class="results">
+      <div class="score-display">
+        <div class="big-score">${pct}%</div>
+        <div class="score-sub">${S.score} of ${total} correct</div>
+        <div class="score-xp">✦ ${S.totalXP.toLocaleString()} XP earned</div>
+      </div>
+
+      <div class="result-title">${title}</div>
+      <p class="result-tagline">${tagline}</p>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--streak)">${S.maxStreak}</div>
+          <div class="stat-label">Best Streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">${MODES[S.mode].icon}</div>
+          <div class="stat-label">${MODES[S.mode].name}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--science)">${Object.keys(ts).length}</div>
+          <div class="stat-label">Topics</div>
+        </div>
+      </div>
+
+      <div class="topic-results">
+        ${Object.entries(ts).map(([tk, s]) => {
+          const tp = TOPICS[tk];
+          const p = Math.round(s.c / s.t * 100);
+          return `<div class="tr-card" style="--c:${tp.color}">
+            <div class="tr-head">${tp.icon} ${tp.name}</div>
+            <div class="tr-bar"><div class="tr-fill" style="width:${p}%"></div></div>
+            <div class="tr-score">${s.c}/${s.t}</div>
+            <div class="tr-pct">${p}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${achs.length ? `
+        <div class="achievements">
+          <h3>Achievements Unlocked</h3>
+          <div class="ach-list">${achs.map(a => `<div class="ach">${a}</div>`).join('')}</div>
+        </div>
+      ` : ''}
+
+      <div class="review-section">
+        <h3>Review Answers</h3>
+        <button class="review-toggle" onclick="toggleReview()">${S.reviewOpen ? 'Hide Review ▲' : 'Show Review ▼'}</button>
+        <div id="review-list" style="display:${S.reviewOpen ? 'block' : 'none'}">
+          ${S.questions.map((q, i) => {
+            const a = S.answers[i];
+            const correct = a && a.correct;
+            const tp = TOPICS[q.topic];
+            return `<div class="review-item">
+              <div class="ri-q">${tp.icon} ${q.q}</div>
+              ${correct
+                ? `<div class="ri-correct">✓ ${q.opts[q.ans]}</div>`
+                : `<div class="ri-wrong">✗ ${a && a.chosen >= 0 ? q.opts[a.chosen] : 'No answer'} → Correct: ${q.opts[q.ans]}</div>`
+              }
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-p" onclick="startQuiz()">Play Again</button>
+        <button class="btn-s" onclick="S.screen='start';render();">Change Settings</button>
+        <button class="btn-s" onclick="shareResults()">📋 Share</button>
+      </div>
+    </div>
+    <div class="footer">Mind Mix v2 — Share freely with anyone</div>
+  `;
+}
+
+function toggleReview() {
+  S.reviewOpen = !S.reviewOpen;
+  const list = document.getElementById('review-list');
+  const btn = document.querySelector('.review-toggle');
+  if (list) list.style.display = S.reviewOpen ? 'block' : 'none';
+  if (btn) btn.textContent = S.reviewOpen ? 'Hide Review ▲' : 'Show Review ▼';
+}
+
+function shareResults() {
+  const total = S.questions.length;
+  const pct = Math.round(S.score / total * 100);
+  const ts = {};
+  S.questions.forEach((q, i) => {
+    if (!ts[q.topic]) ts[q.topic] = { c:0, t:0 };
+    ts[q.topic].t++;
+    if (S.answers[i] && S.answers[i].correct) ts[q.topic].c++;
+  });
+
+  let txt = `🧠 Mind Mix v2 — ${pct}% (${S.score}/${total})\n`;
+  txt += `Mode: ${MODES[S.mode].icon} ${MODES[S.mode].name} | 🔥 Best streak: ${S.maxStreak}\n\n`;
+  Object.entries(ts).forEach(([tk, s]) => {
+    const tp = TOPICS[tk];
+    const bar = '█'.repeat(s.c) + '░'.repeat(s.t - s.c);
+    txt += `${tp.icon} ${tp.name}: ${bar} ${s.c}/${s.t}\n`;
+  });
+  txt += `\n✦ ${S.totalXP.toLocaleString()} XP earned\nTry the Mind Mix yourself!`;
+
+  navigator.clipboard.writeText(txt).then(() => showToast('✅ Results copied to clipboard!'));
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (S.screen !== 'quiz') return;
+  const answered = S.answers[S.current] !== undefined;
+  if (!answered) {
+    const map = { a:0, b:1, c:2, d:3, '1':0, '2':1, '3':2, '4':3 };
+    if (map[e.key.toLowerCase()] !== undefined) chooseAnswer(map[e.key.toLowerCase()]);
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault(); nextQ();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
